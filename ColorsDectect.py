@@ -17,10 +17,6 @@ def get_limits(color):
 
     return lowerLimit, upperLimit
 
-def draw_rectangle(image, bbox):
-    draw = ImageDraw.Draw(image)
-    draw.rectangle(bbox, outline=(0, 255, 0), width=5)
-
 color = [0, 255, 0] #BGR Color
 
 # Capture color in Laptop camera

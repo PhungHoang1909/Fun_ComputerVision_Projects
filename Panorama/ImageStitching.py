@@ -77,23 +77,31 @@ def getTransform(src, dst, method="affine"):
 
     return (M, pts1, pts2, mask)
 
+def blend_images(img1, img2):
+    mask = np.where(img1 != 0, 1, 0).astype(np.float32)
+    blended_img = img1 * mask + img2 * (1 - mask)
+    return blended_img.astype(np.uint8)
 
 def Perspective_warping(img1, img2, img3):
     # Extend borders of img1
-    img1_padded = cv2.copyMakeBorder(img1, 50, 50, 100, 500, cv2.BORDER_CONSTANT)
+    img1_padded = cv2.copyMakeBorder(img1, 50, 50, 10, 500, cv2.BORDER_CONSTANT)
 
     # Compute transformation matrices
-    (M1, _, _, _) = getTransform(img2, img1_padded, "homography")
+    (M1, pts1, pts2, _) = getTransform(img2, img1_padded, "homography")
     (M2, _, _, _) = getTransform(img3, img1_padded, "homography")
 
     # Warp images
     out1 = cv2.warpPerspective(img2, M1, (img1_padded.shape[1], img1_padded.shape[0]))
     out2 = cv2.warpPerspective(img3, M2, (img1_padded.shape[1], img1_padded.shape[0]))
 
-    # Combine warped images using weighted addition
-    alpha = 0.5
-    beta = 1.0 - alpha
-    output = cv2.addWeighted(out1, alpha, out2, beta, 0.0)
+    # Create masks for blending
+    mask1 = np.zeros_like(img1_padded, dtype=np.float32)
+    mask2 = np.zeros_like(img1_padded, dtype=np.float32)
+    cv2.fillPoly(mask1, [np.int32(pts1)], (1, 1, 1))
+    cv2.fillPoly(mask2, [np.int32(pts2)], (1, 1, 1))
+
+    # Blend images using masks
+    blended_img = blend_images(out1, out2)
 
     # Display images
     plt.figure(figsize=(12, 8))
@@ -116,7 +124,7 @@ def Perspective_warping(img1, img2, img3):
 
     # Resulting stitched image
     plt.subplot(2, 2, 4)
-    plt.imshow(output, cmap="gray")
+    plt.imshow(blended_img, cmap="gray")
     plt.title("Stitched Image")
     plt.axis("off")
 
@@ -125,7 +133,9 @@ def Perspective_warping(img1, img2, img3):
     return True
 
 
+
 img1 = cv2.imread("7_1.jpg")
 img2 = cv2.imread("7_2.jpg")
 img3 = cv2.imread("7_3.jpg")
+
 Perspective_warping(img1, img2, img3)
